@@ -1,0 +1,38 @@
+# Git
+.git
+.gitignore
+
+# Environment files (will be set via docker-compose)
+.env
+.env.local
+
+# Dependencies
+node_modules
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Build artifacts
+dist/
+build/
+tmp/
+
+# Test files
+*.test
+coverage.out
+
+# Documentation (optional)
+docs/
+README.md
