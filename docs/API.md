@@ -140,7 +140,7 @@ Retrieve all events with pagination.
       "total_pages": 1
     }
   }
-}
+}****
 ```
 
 ### Get Event by ID
@@ -316,7 +316,7 @@ Retrieve transaction details by ID.
 
 ### Check Payment
 
-#### POST /api/v1/transactions/{id}/check-payment
+#### POST /api/v1/transactions/{id}/check
 
 Manually trigger payment verification for a transaction.
 

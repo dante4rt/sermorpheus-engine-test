@@ -67,14 +67,6 @@ BSC_RPC_URL=https://bsc-testnet.public.blastapi.io
 BSC_RPC_URL=https://your-endpoint.bsc-testnet.quiknode.pro/your-api-key/
 ```
 
-### BSC Mainnet (Production)
-
-```bash
-BSC_RPC_URL=https://bsc-dataseed1.binance.org/
-USDT_CONTRACT=0x55d398326f99059fF775485246999027B3197955
-USDT_DECIMALS=18
-```
-
 ## Setup Instructions
 
 ### 1. Copy Environment Template
@@ -125,14 +117,6 @@ The application validates configuration at startup:
 ENVIRONMENT=development
 BSC_RPC_URL=https://data-seed-prebsc-1-s1.binance.org:8545  # Testnet
 USDT_CONTRACT=0xCD60747D9Bbb1da2AfB2F834391f0FF6ccb15f1a      # Testnet USDT
-```
-
-### Production
-
-```bash
-ENVIRONMENT=production
-BSC_RPC_URL=https://bsc-dataseed1.binance.org/               # Mainnet
-USDT_CONTRACT=0x55d398326f99059fF775485246999027B3197955      # Mainnet USDT
 ```
 
 ## Security Best Practices

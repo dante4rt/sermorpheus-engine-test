@@ -337,7 +337,7 @@ While the system doesn't provide webhooks, it offers real-time status checking:
 GET /api/v1/transactions/{id}
 
 # Manual payment check
-POST /api/v1/transactions/{id}/check-payment
+POST /api/v1/transactions/{id}/check
 ```
 
 ## Troubleshooting Guide
@@ -366,7 +366,7 @@ POST /api/v1/transactions/{id}/check-payment
 curl -X GET http://localhost:8080/api/v1/rates/current
 
 # Manual payment verification
-curl -X POST http://localhost:8080/api/v1/transactions/{id}/check-payment
+curl -X POST http://localhost:8080/api/v1/transactions/{id}/check
 
 # View transaction details
 curl -X GET http://localhost:8080/api/v1/transactions/{id}

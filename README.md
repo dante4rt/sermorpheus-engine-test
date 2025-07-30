@@ -179,7 +179,7 @@ curl -X POST http://localhost:8080/api/v1/transactions \
 ### 3. Monitor Payment
 The system automatically monitors blockchain transactions. You can also manually check:
 ```bash
-curl -X POST http://localhost:8080/api/v1/transactions/TRANSACTION_ID/check-payment
+curl -X POST http://localhost:8080/api/v1/transactions/TRANSACTION_ID/check
 ```
 
 ## 🔧 Development
@@ -259,7 +259,7 @@ sermorpheus-engine-test/
 3. **Payment Not Detected**
    ```bash
    # Check transaction manually
-   curl -X POST http://localhost:8080/api/v1/transactions/TX_ID/check-payment
+   curl -X POST http://localhost:8080/api/v1/transactions/TX_ID/check
    ```
 
 ### Logs
