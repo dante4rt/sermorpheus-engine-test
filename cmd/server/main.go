@@ -23,7 +23,7 @@ func main() {
 	eventService := services.NewEventService(dbService.DB)
 	customerService := services.NewCustomerService(dbService.DB)
 	rateService := services.NewRateService(dbService.DB)
-	blockchainService := services.NewBlockchainService(dbService.DB)
+	blockchainService := services.NewBlockchainService(dbService.DB, cfg)
 	transactionService := services.NewTransactionService(
 		dbService.DB,
 		eventService,

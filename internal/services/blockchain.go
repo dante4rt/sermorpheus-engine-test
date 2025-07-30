@@ -7,6 +7,7 @@ import (
 	"log"
 	"math"
 	"math/big"
+	"sermorpheus-engine-test/internal/config"
 	"sermorpheus-engine-test/internal/models"
 	"time"
 
@@ -19,27 +20,31 @@ import (
 )
 
 type BlockchainService struct {
-	db     *gorm.DB
-	client *ethclient.Client
+	db           *gorm.DB
+	client       *ethclient.Client
+	config       *config.Config
+	usdtContract string
+	usdtDecimals int
 }
 
-const (
-	BSCTestnetRPC       = "https://data-seed-prebsc-1-s1.binance.org:8545"
-	BSCTestnetWSS       = "wss://bsc-testnet.drpc.org"
-	USDTContractAddress = "0xCD60747D9Bbb1da2AfB2F834391f0FF6ccb15f1a"
-	USDTDecimals        = 6
-)
-
-func NewBlockchainService(db *gorm.DB) *BlockchainService {
-	client, err := ethclient.Dial(BSCTestnetRPC)
+func NewBlockchainService(db *gorm.DB, cfg *config.Config) *BlockchainService {
+	client, err := ethclient.Dial(cfg.BSCRPCUrl)
 	if err != nil {
 		log.Printf("Failed to connect to BSC testnet: %v", err)
-		return &BlockchainService{db: db}
+		return &BlockchainService{
+			db:           db,
+			config:       cfg,
+			usdtContract: cfg.USDTContract,
+			usdtDecimals: cfg.USDTDecimals,
+		}
 	}
 
 	return &BlockchainService{
-		db:     db,
-		client: client,
+		db:           db,
+		client:       client,
+		config:       cfg,
+		usdtContract: cfg.USDTContract,
+		usdtDecimals: cfg.USDTDecimals,
 	}
 }
 
@@ -180,7 +185,7 @@ func (bs *BlockchainService) checkSingleBlockForTransfer(blockNum uint64, transa
 
 	for _, tx := range block.Transactions() {
 
-		if tx.To() == nil || tx.To().Hex() != USDTContractAddress {
+		if tx.To() == nil || tx.To().Hex() != bs.usdtContract {
 			continue
 		}
 
@@ -198,7 +203,7 @@ func (bs *BlockchainService) checkSingleBlockForTransfer(blockNum uint64, transa
 }
 
 func (bs *BlockchainService) checkTransactionForPayment(receipt *types.Receipt, transactionID uuid.UUID, expectedAmount float64, paymentAddress string) bool {
-	contractAddress := common.HexToAddress(USDTContractAddress)
+	contractAddress := common.HexToAddress(bs.usdtContract)
 	toAddress := common.HexToAddress(paymentAddress)
 	transferSig := crypto.Keccak256Hash([]byte("Transfer(address,address,uint256)"))
 
@@ -234,7 +239,7 @@ func (bs *BlockchainService) processTransferLog(vLog types.Log, transactionID uu
 	amountBig := new(big.Int).SetBytes(vLog.Data[len(vLog.Data)-32:])
 	amountFloat := new(big.Float).SetInt(amountBig)
 
-	divisor := new(big.Float).SetInt(new(big.Int).Exp(big.NewInt(10), big.NewInt(USDTDecimals), nil))
+	divisor := new(big.Float).SetInt(new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(bs.usdtDecimals)), nil))
 	amountUSDT, _ := new(big.Float).Quo(amountFloat, divisor).Float64()
 
 	log.Printf("Found transfer: %.6f USDT (tx: %s)", amountUSDT, vLog.TxHash.Hex())
@@ -266,7 +271,7 @@ func (bs *BlockchainService) handleTransferEvent(vLog types.Log, transactionID u
 	amountBig := new(big.Int).SetBytes(vLog.Data[len(vLog.Data)-32:])
 	amountFloat := new(big.Float).SetInt(amountBig)
 
-	divisor := new(big.Float).SetInt(new(big.Int).Exp(big.NewInt(10), big.NewInt(USDTDecimals), nil))
+	divisor := new(big.Float).SetInt(new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(bs.usdtDecimals)), nil))
 	amountUSDT, _ := new(big.Float).Quo(amountFloat, divisor).Float64()
 
 	log.Printf("Received %.6f USDT, expected %.6f USDT", amountUSDT, expectedAmount)
