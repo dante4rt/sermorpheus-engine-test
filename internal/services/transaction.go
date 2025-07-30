@@ -34,22 +34,24 @@ type CreateTransactionRequest struct {
 }
 
 func (ts *TransactionService) CreateTransaction(req *CreateTransactionRequest) (*models.Transaction, error) {
-	return ts.db.Transaction(func(tx *gorm.DB) (*models.Transaction, error) {
+	var result *models.Transaction
+
+	err := ts.db.Transaction(func(tx *gorm.DB) error {
 
 		event, err := ts.eventService.GetEventByID(req.EventID)
 		if err != nil {
-			return nil, errors.New("event not found")
+			return errors.New("event not found")
 		}
 
 		if event.AvailableQuota < req.Quantity {
-			return nil, errors.New("insufficient tickets available")
+			return errors.New("insufficient tickets available")
 		}
 
 		totalIDR := event.PriceIDR * float64(req.Quantity)
 
 		rate, err := ts.rateService.GetCurrentRate()
 		if err != nil {
-			return nil, errors.New("failed to get exchange rate")
+			return errors.New("failed to get exchange rate")
 		}
 
 		baseUSDTAmount := totalIDR / rate.IDRToUSDTRate
@@ -59,12 +61,12 @@ func (ts *TransactionService) CreateTransaction(req *CreateTransactionRequest) (
 		finalUSDTAmount = math.Round(finalUSDTAmount*1000000) / 1000000
 
 		if err := ts.eventService.UpdateEventQuota(req.EventID, req.Quantity); err != nil {
-			return nil, err
+			return err
 		}
 
 		paymentAddr, err := ts.getAvailablePaymentAddress(tx)
 		if err != nil {
-			return nil, errors.New("no payment address available")
+			return errors.New("no payment address available")
 		}
 
 		transaction := &models.Transaction{
@@ -80,15 +82,22 @@ func (ts *TransactionService) CreateTransaction(req *CreateTransactionRequest) (
 		}
 
 		if err := tx.Create(transaction).Error; err != nil {
-			return nil, err
+			return err
 		}
 
 		if err := ts.generateTickets(tx, transaction); err != nil {
-			return nil, err
+			return err
 		}
 
-		return transaction, nil
-	}), nil
+		result = transaction
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
 
 func (ts *TransactionService) GetTransactionByID(id uuid.UUID) (*models.Transaction, error) {
