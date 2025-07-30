@@ -23,16 +23,18 @@ func main() {
 	eventService := services.NewEventService(dbService.DB)
 	customerService := services.NewCustomerService(dbService.DB)
 	rateService := services.NewRateService(dbService.DB)
+	blockchainService := services.NewBlockchainService(dbService.DB)
 	transactionService := services.NewTransactionService(
 		dbService.DB,
 		eventService,
 		rateService,
+		blockchainService,
 		cfg.PlatformFeePercent,
 	)
 
 	eventHandler := handlers.NewEventHandler(eventService)
 	customerHandler := handlers.NewCustomerHandler(customerService)
-	transactionHandler := handlers.NewTransactionHandler(transactionService, customerService)
+	transactionHandler := handlers.NewTransactionHandler(transactionService, customerService, blockchainService)
 	rateHandler := handlers.NewRateHandler(rateService)
 
 	r := gin.Default()
@@ -46,7 +48,6 @@ func main() {
 
 	v1 := r.Group("/api/v1")
 	{
-
 		events := v1.Group("/events")
 		{
 			events.POST("", eventHandler.CreateEvent)
@@ -64,6 +65,7 @@ func main() {
 			transactions.POST("", transactionHandler.CreateTransaction)
 			transactions.GET("/:id", transactionHandler.GetTransaction)
 			transactions.POST("/:id/confirm", transactionHandler.ConfirmPayment)
+			transactions.POST("/:id/check", transactionHandler.CheckPayment)
 		}
 
 		rates := v1.Group("/rates")

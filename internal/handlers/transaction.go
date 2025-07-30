@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
 	"sermorpheus-engine-test/internal/services"
 	"sermorpheus-engine-test/internal/utils"
@@ -12,12 +13,14 @@ import (
 type TransactionHandler struct {
 	transactionService *services.TransactionService
 	customerService    *services.CustomerService
+	blockchainService  *services.BlockchainService
 }
 
-func NewTransactionHandler(transactionService *services.TransactionService, customerService *services.CustomerService) *TransactionHandler {
+func NewTransactionHandler(transactionService *services.TransactionService, customerService *services.CustomerService, blockchainService *services.BlockchainService) *TransactionHandler {
 	return &TransactionHandler{
 		transactionService: transactionService,
 		customerService:    customerService,
+		blockchainService:  blockchainService,
 	}
 }
 
@@ -88,7 +91,8 @@ func (th *TransactionHandler) ConfirmPayment(c *gin.Context) {
 	}
 
 	var req struct {
-		TxHash string `json:"tx_hash" binding:"required"`
+		TxHash string  `json:"tx_hash" binding:"required"`
+		Amount float64 `json:"amount,omitempty"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid request data", err.Error())
@@ -101,4 +105,40 @@ func (th *TransactionHandler) ConfirmPayment(c *gin.Context) {
 	}
 
 	utils.SuccessResponse(c, http.StatusOK, "Payment confirmed successfully", nil)
+}
+
+func (th *TransactionHandler) CheckPayment(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid transaction ID", err.Error())
+		return
+	}
+
+	transaction, err := th.transactionService.GetTransactionByID(id)
+	if err != nil {
+		utils.ErrorResponse(c, http.StatusNotFound, "Transaction not found", err.Error())
+		return
+	}
+
+	if transaction.Status != "pending" {
+		utils.SuccessResponse(c, http.StatusOK, "Transaction already processed", gin.H{
+			"status": transaction.Status,
+		})
+		return
+	}
+
+	go func() {
+		found := th.blockchainService.CheckRecentTransfer(transaction.ID, transaction.USDTAmount, transaction.PaymentAddress)
+		if found {
+			log.Printf("Manual check found payment for transaction %s", transaction.ID)
+		} else {
+			log.Printf("Manual check: no payment found for transaction %s", transaction.ID)
+		}
+	}()
+
+	utils.SuccessResponse(c, http.StatusOK, "Payment check initiated", gin.H{
+		"transaction_id": transaction.ID,
+		"checking":       true,
+	})
 }

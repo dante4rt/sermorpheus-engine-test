@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+	"log"
 	"math"
 	"sermorpheus-engine-test/internal/models"
 	"time"
@@ -12,18 +13,26 @@ import (
 )
 
 type TransactionService struct {
-	db           *gorm.DB
-	eventService *EventService
-	rateService  *RateService
-	platformFee  float64
+	db                *gorm.DB
+	eventService      *EventService
+	rateService       *RateService
+	blockchainService *BlockchainService
+	platformFee       float64
 }
 
-func NewTransactionService(db *gorm.DB, eventService *EventService, rateService *RateService, platformFee float64) *TransactionService {
+func NewTransactionService(
+	db *gorm.DB,
+	eventService *EventService,
+	rateService *RateService,
+	blockchainService *BlockchainService,
+	platformFeePercent float64,
+) *TransactionService {
 	return &TransactionService{
-		db:           db,
-		eventService: eventService,
-		rateService:  rateService,
-		platformFee:  platformFee,
+		db:                db,
+		eventService:      eventService,
+		rateService:       rateService,
+		blockchainService: blockchainService,
+		platformFee:       platformFeePercent,
 	}
 }
 
@@ -89,6 +98,10 @@ func (ts *TransactionService) CreateTransaction(req *CreateTransactionRequest) (
 			return err
 		}
 
+		if err := ts.blockchainService.MonitorPayment(transaction.ID, transaction.USDTAmount, transaction.PaymentAddress); err != nil {
+			log.Printf("Warning: Failed to start payment monitoring: %v", err)
+		}
+
 		result = transaction
 		return nil
 	})
@@ -149,6 +162,19 @@ func (ts *TransactionService) ConfirmPayment(transactionID uuid.UUID, txHash str
 func (ts *TransactionService) getAvailablePaymentAddress(tx *gorm.DB) (string, error) {
 	var paymentAddr models.PaymentAddress
 	if err := tx.Where("is_used = ?", false).First(&paymentAddr).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			newAddr, genErr := ts.blockchainService.GeneratePaymentAddress()
+			if genErr != nil {
+				return "", fmt.Errorf("failed to generate payment address: %w", genErr)
+			}
+
+			newAddr.IsUsed = true
+			if err := tx.Save(newAddr).Error; err != nil {
+				return "", fmt.Errorf("failed to mark address as used: %w", err)
+			}
+
+			return newAddr.Address, nil
+		}
 		return "", err
 	}
 
