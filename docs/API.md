@@ -140,7 +140,7 @@ Retrieve all events with pagination.
       "total_pages": 1
     }
   }
-}****
+}
 ```
 
 ### Get Event by ID
