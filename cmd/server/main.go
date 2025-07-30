@@ -33,6 +33,7 @@ func main() {
 	eventHandler := handlers.NewEventHandler(eventService)
 	customerHandler := handlers.NewCustomerHandler(customerService)
 	transactionHandler := handlers.NewTransactionHandler(transactionService, customerService)
+	rateHandler := handlers.NewRateHandler(rateService)
 
 	r := gin.Default()
 
@@ -63,6 +64,11 @@ func main() {
 			transactions.POST("", transactionHandler.CreateTransaction)
 			transactions.GET("/:id", transactionHandler.GetTransaction)
 			transactions.POST("/:id/confirm", transactionHandler.ConfirmPayment)
+		}
+
+		rates := v1.Group("/rates")
+		{
+			rates.GET("/current", rateHandler.GetCurrentRate)
 		}
 	}
 
